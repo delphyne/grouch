@@ -1,0 +1,28 @@
+apply(plugin: 'groovy')
+apply(plugin: 'eclipse')
+
+group='org.dyndns.delphyne'
+version='1.0.0-SNAPSHOT'
+
+def slf_version = '1.5.11'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    groovy('org.codehaus.groovy:groovy:1.8.3')
+
+    compile([
+            "org.slf4j:slf4j-api:$slf_version",
+            'org.codehaus.groovy.modules.http-builder:http-builder:0.5.1',
+        ])
+
+    testCompile([
+            "org.slf4j:slf4j-log4j12:$slf_version",
+            'log4j:log4j:1.2.16',
+            'junit:junit:4.8.2',
+        ])
+}
+            

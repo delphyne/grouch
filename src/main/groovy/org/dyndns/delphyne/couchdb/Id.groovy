@@ -15,6 +15,6 @@ import org.codehaus.groovy.transform.GroovyASTTransformationClass
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 @GroovyASTTransformationClass('org.dyndns.delphyne.couchdb.internal.KeyASTTransformation')
-@interface Key {
+@interface Id {
 
 }

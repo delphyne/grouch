@@ -15,8 +15,6 @@ import org.codehaus.groovy.transform.GroovyASTTransformationClass
  * @author Brian M. Carr <delphyne@gmail.com>
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-@GroovyASTTransformationClass('org.dyndns.delphyne.couchdb.internal.KeyASTTransformation')
-@interface Document {
-
-}
+@Target([ElementType.TYPE])
+@GroovyASTTransformationClass('org.dyndns.delphyne.couchdb.internal.DocumentASTTransformation')
+@interface Document { }

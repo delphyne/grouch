@@ -1,21 +1,67 @@
 package org.dyndns.delphyne.couchdb
 
+import java.security.SecureRandom
+import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 
 class RepositoryTest {
-    @Test
-    void testFindPerson() {
+    Repository repo
+    SecureRandom random = new SecureRandom()
+    
+    @BeforeClass
+    static void setupConfig() {
         File configFile = new File('src/test/resources/repository-config.groovy')
         assert configFile.exists()
         
         ConfigSlurper slurper = new ConfigSlurper()
         ConfigObject co = slurper.parse(configFile.toURI().toURL())
         
-        Repository repository = new Repository(config: new RepositoryConfig(co))
-        Person person = repository.find(Person, 'carrbm1')
+        Repository.config = new RepositoryConfig(co)
+    }
+    
+    @Before
+    void setupRepo() {
+        repo = new Repository()
+    }
+    
+    @Test
+    void testFindByKey() {
+        Person person = repo.find(Person, 'carrbm1')
         assert person._id == 'carrbm1'
         assert person.age == 33
         assert person.name == 'Brian M. Carr'
+    }
+    
+    @Test
+    void testFindByKeyWithSpaceInKey() {
+        Person person = repo.find(Person, 'cat be cool')
+        assert person._id == 'cat be cool'
+        assert person.age == 21
+        assert person.name == 'My ID Has Spaces'
+    }
+    
+    @Test
+    void testCreateWithNoKey() {
+        String personName = "New Person With Couch-Provided ID #${new BigInteger(16,random)}"
+        Person beforeSave = new Person(name: personName, age: new BigInteger(6, random))
+        Person afterSave = repo.save(Person, beforeSave)
+        assert beforeSave.name == afterSave.name
+        assert beforeSave.age == afterSave.age
+        assert afterSave._id
+        assert afterSave._rev
+    }
+    
+    @Test
+    void testCreatWithProvidedKey() {
+        String id = new BigInteger(16, random)
+        String personName = "New Person With Randomly Generated Key #${id}"
+        Person beforeSave = new Person(name: personName, age: new BigInteger(6, random), _id: id)
+        Person afterSave = repo.save(Person, beforeSave)
+        assert beforeSave.name == afterSave.name
+        assert beforeSave.age == afterSave.age
+        assert afterSave._id == id
+        assert afterSave._rev
     }
 }
 

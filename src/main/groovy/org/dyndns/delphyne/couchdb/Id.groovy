@@ -12,9 +12,6 @@ import org.codehaus.groovy.transform.GroovyASTTransformationClass
  * @author bcarr
  *
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.FIELD)
-@GroovyASTTransformationClass('org.dyndns.delphyne.couchdb.internal.KeyASTTransformation')
-@interface Id {
-
-}
+@interface Id { }

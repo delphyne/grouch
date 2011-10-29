@@ -60,7 +60,7 @@ class Repository {
             created = true
         } else {
             response = couch.put(
-                                            path: "${type.simpleName.toLowerCase()}/${instance._id}",
+                                            path: "${type.simpleName.toLowerCase()}/${instance._id ?: ''}",
                                             contentType: 'text/plain',
                                             requestContentType: 'application/json',
                                             body: json)

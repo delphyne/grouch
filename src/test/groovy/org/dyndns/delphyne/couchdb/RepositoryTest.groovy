@@ -43,7 +43,7 @@ class RepositoryTest {
     
     @Test
     void testCreateWithNoKey() {
-        String personName = "New Person With Couch-Provided ID #${new BigInteger(16,random)}"
+        String personName = "New Person With Couch-Provided ID #${new BigInteger(128,random)}"
         Person beforeSave = new Person(name: personName, age: new BigInteger(6, random))
         Person afterSave = repo.save(Person, beforeSave)
         assert beforeSave.name == afterSave.name
@@ -53,8 +53,8 @@ class RepositoryTest {
     }
     
     @Test
-    void testCreatWithProvidedKey() {
-        String id = new BigInteger(16, random)
+    void testCreateWithProvidedKey() {
+        String id = new BigInteger(128, random)
         String personName = "New Person With Randomly Generated Key #${id}"
         Person beforeSave = new Person(name: personName, age: new BigInteger(6, random), _id: id)
         Person afterSave = repo.save(Person, beforeSave)
@@ -63,6 +63,25 @@ class RepositoryTest {
         assert afterSave._id == id
         assert afterSave._rev
     }
+
+    @Test
+    void testUpdate() {
+        String id = new BigInteger(128, random)
+        String personName = "New Person With Couch-Provided ID to Test Updates"
+        Person newPerson = repo.save(Person, new Person(name: "New Person #${id} to Test Updates", age: 15))
+        
+        assert newPerson._id
+        assert newPerson._rev
+        
+        newPerson.age = 25
+        Person afterUpdate = repo.save(Person, newPerson)
+        
+        assert newPerson._id == afterUpdate._id
+        assert newPerson._rev < afterUpdate._rev
+        
+        assert 25 == repo.find(Person, newPerson._id).age
+    }    
+    
 }
 
 class Person {

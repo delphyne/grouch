@@ -1,8 +1,13 @@
 package org.dyndns.delphyne.couchdb
 
+import org.dyndns.delphyne.couchdb.exception.DatabaseNotFoundException
+import org.dyndns.delphyne.couchdb.exception.ObjectDeletedException
+import org.dyndns.delphyne.couchdb.exception.ObjectNotFoundException
+
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.util.logging.Log4j
+import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 
 /**
@@ -30,7 +35,7 @@ class Repository {
      * @return
      */
     def find(String id) {
-        find(this.class, id)
+        findDocument(this.class, id)
     }
 
     /**
@@ -39,13 +44,17 @@ class Repository {
      * @param id
      * @return
      */
-    private <T> T find(Class<T> type, String id) {
+    private <T> T findDocument(Class<T> type, String id, boolean suppressNotFoundExceptions = true) {
         try {
             def response = couch.get(path: "${type.simpleName.toLowerCase()}/${id}", contentType: 'text/plain')
             JsonSlurper slurper = new JsonSlurper()
             type.newInstance(slurper.parse(response.data))
-        } catch(ex) {
-            log.debug '', ex
+        } catch(HttpResponseException ex) {
+            def mappedException = translateException(ex)
+            
+            if (!(suppressNotFoundExceptions && (mappedException instanceof ObjectNotFoundException))) {
+                throw mappedException
+            }
         }
     }
 
@@ -56,7 +65,7 @@ class Repository {
      * @return
      */
     def save(def instance) {
-        save(this.class, instance)
+        saveDocument(this.class, instance)
     }
 
     /**
@@ -67,32 +76,36 @@ class Repository {
      * @param instance
      * @return
      */
-    private <T> T save(Class<T> type, T instance) {
-        def propMap = toMap(instance)
-        def json = JsonOutput.toJson(propMap)
+    private <T> T saveDocument(Class<T> type, T instance) {
+        try {
+            def propMap = toMap(instance)
+            def json = JsonOutput.toJson(propMap)
 
-        def response
-        if (instance._id == null) {
-            response = couch.post(
-                                            path: "${type.simpleName.toLowerCase()}/",
-                                            contentType: 'text/plain',
-                                            requestContentType: 'application/json',
-                                            body: json)
-        } else {
-            response = couch.put(
-                                            path: "${type.simpleName.toLowerCase()}/${instance._id}",
-                                            contentType: 'text/plain',
-                                            requestContentType: 'application/json',
-                                            body: json)
+            def response
+            if (instance._id == null) {
+                response = couch.post(
+                        path: "${type.simpleName.toLowerCase()}/",
+                        contentType: 'text/plain',
+                        requestContentType: 'application/json',
+                        body: json)
+            } else {
+                response = couch.put(
+                        path: "${type.simpleName.toLowerCase()}/${instance._id}",
+                        contentType: 'text/plain',
+                        requestContentType: 'application/json',
+                        body: json)
+            }
+
+            JsonSlurper slurper = new JsonSlurper()
+            def responseMap = slurper.parse(response.data)
+            propMap._id = responseMap.id
+            propMap._rev = responseMap.rev
+            type.newInstance(propMap)
+        } catch (HttpResponseException ex) {
+            throw translateException(ex)
         }
-
-        JsonSlurper slurper = new JsonSlurper()
-        def responseMap = slurper.parse(response.data)
-        propMap._id = responseMap.id
-        propMap._rev = responseMap.rev
-        type.newInstance(propMap)
     }
-    
+
     /**
      * Deletes the current instance from CouchDB.  A revision is required to perform the delete.  If no revision is
      *  provided in the object instance, a search will be performed to find the most recent revision, then the 
@@ -103,9 +116,9 @@ class Repository {
      * @return the revision of the deleted document
      */
     String delete(def instance) {
-        delete(this.class, instance)
+        deleteDocument(this.class, instance)
     }
-    
+
     /**
      * Deletes the current document from CouchDB.  If no _rev is supplied, a search is performed before executing the
      *  delete.
@@ -113,20 +126,24 @@ class Repository {
      * @param instance
      * @return
      */
-    private <T> String delete(Class<T> type, T instance) {
-        def instanceToDelete = instance._rev ? instance : find(type, instance.id)
-    
-        def response = couch.delete(
-            path: "${type.simpleName.toLowerCase()}/${instanceToDelete._id}",
-            query: [rev: instanceToDelete._rev],
-            contentType: 'text/plain')
-        
-        JsonSlurper slurper = new JsonSlurper()
-        def responseMap = slurper.parse(response.data)
-        responseMap.rev
+    private <T> String deleteDocument(Class<T> type, T instance) {
+        try {
+            def instanceToDelete = instance._rev ? instance : find(type, instance.id, false)
+
+            def response = couch.delete(
+                    path: "${type.simpleName.toLowerCase()}/${instanceToDelete._id}",
+                    query: [rev: instanceToDelete._rev],
+                    contentType: 'text/plain')
+
+            JsonSlurper slurper = new JsonSlurper()
+            def responseMap = slurper.parse(response.data)
+            responseMap.rev
+        } catch (HttpResponseException ex) {
+            translateException(ex)
+        }
     }
-    
-    
+
+
     /**
      * Creates a map from an Object instance's properties, excluding null properties, and the class and metaClass 
      *  properties.
@@ -144,6 +161,31 @@ class Repository {
             } else {
                 acc << it
             }
+        }
+    }
+
+    /**
+     * Maps HTTP Response codes and the JSON emitted from CouchDB into exceptions
+     * @param ex
+     * @return
+     */
+    private Exception translateException(HttpResponseException ex) {
+        JsonSlurper slurper = new JsonSlurper()
+        def responseMap = slurper.parse(ex.response.data)
+        switch(ex.response.status) {
+            case 404:
+                if (responseMap.reason == 'missing') {
+                    new ObjectNotFoundException(ex)
+                } else if (responseMap.reason == 'deleted') {
+                    new ObjectDeletedException(ex)
+                } else if (responseMap.reason == 'no_db_file') {
+                    new DatabaseNotFoundException(ex)
+                } else {
+                    ex
+                }
+                break
+            default:
+                ex
         }
     }
 }

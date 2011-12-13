@@ -2,6 +2,7 @@ package org.dyndns.delphyne.couchdb
 
 import java.security.SecureRandom
 
+import org.dyndns.delphyne.couchdb.exception.ObjectDeletedException;
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -30,7 +31,7 @@ class RepositoryTest {
     
     @Test
     void testFindByKey() {
-        Person person = repo.find(Person, 'carrbm1')
+        Person person = repo.findDocument(Person, 'carrbm1')
         assert person._id == 'carrbm1'
         assert person.age == 33
         assert person.name == 'Brian M. Carr'
@@ -38,7 +39,7 @@ class RepositoryTest {
     
     @Test
     void testFindByKeyWithSpaceInKey() {
-        Person person = repo.find(Person, 'cat be cool')
+        Person person = repo.findDocument(Person, 'cat be cool')
         assert person._id == 'cat be cool'
         assert person.age == 21
         assert person.name == 'My ID Has Spaces'
@@ -48,7 +49,7 @@ class RepositoryTest {
     void testCreateWithNoKey() {
         String personName = "New Person With Couch-Provided ID #${new BigInteger(128,random)}"
         Person beforeSave = new Person(name: personName, age: new BigInteger(6, random))
-        Person afterSave = repo.save(Person, beforeSave)
+        Person afterSave = repo.saveDocument(Person, beforeSave)
         assert beforeSave.name == afterSave.name
         assert beforeSave.age == afterSave.age
         assert afterSave._id
@@ -60,7 +61,7 @@ class RepositoryTest {
         String id = new BigInteger(128, random)
         String personName = "New Person With Randomly Generated Key #${id}"
         Person beforeSave = new Person(name: personName, age: new BigInteger(6, random), _id: id)
-        Person afterSave = repo.save(Person, beforeSave)
+        Person afterSave = repo.saveDocument(Person, beforeSave)
         assert beforeSave.name == afterSave.name
         assert beforeSave.age == afterSave.age
         assert afterSave._id == id
@@ -71,33 +72,44 @@ class RepositoryTest {
     void testUpdate() {
         String id = new BigInteger(128, random)
         String personName = "New Person With Couch-Provided ID to Test Updates"
-        Person newPerson = repo.save(Person, new Person(name: "New Person #${id} to Test Updates", age: 15))
+        Person newPerson = repo.saveDocument(Person, new Person(name: "New Person #${id} to Test Updates", age: 15))
         
         assert newPerson._id
         assert newPerson._rev
         
         newPerson.age = 25
-        Person afterUpdate = repo.save(Person, newPerson)
+        Person afterUpdate = repo.saveDocument(Person, newPerson)
         
         assert newPerson._id == afterUpdate._id
         assert newPerson._rev < afterUpdate._rev
         
-        assert 25 == repo.find(Person, newPerson._id).age
+        assert 25 == repo.findDocument(Person, newPerson._id).age
     }
     
     @Test
     void testDelete() {
         Person person = new Person(name: 'bob', age: 33)
-        Person afterSave = repo.save(Person, person)
+        Person afterSave = repo.saveDocument(Person, person)
         
         assert afterSave._id
         assert afterSave._rev
         
-        def afterDeleteRev = repo.delete(Person, afterSave)
+        def afterDeleteRev = repo.deleteDocument(Person, afterSave)
         
         assert afterDeleteRev != null && afterDeleteRev != afterSave._rev
         
-        assert ! repo.find(Person, afterSave._id)
+        try {
+            repo.findDocument(Person, afterSave._id, false)
+            assert false : 'This should have already thrown an ObjectDeletedException'
+        } catch (ex) {
+            assert ex instanceof ObjectDeletedException
+        }
+        
+        try {
+            repo.deleteDocument(Person, afterSave)
+        } catch (ex) {
+            assert ex instanceof ObjectDeletedException
+        }
     }    
 }
 

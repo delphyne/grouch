@@ -1,5 +1,5 @@
 url = 'http://localhost:5984'
 apikey {
-    user = 'k8spelling_test_account'
-    password = 'k8spelling_test_account_password'
+    user = 'grouch_test_account'
+    password = 'bik-gets-er-oub-phav-bok-as-ak-j'
 }

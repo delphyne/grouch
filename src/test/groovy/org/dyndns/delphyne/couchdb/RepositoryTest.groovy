@@ -1,9 +1,12 @@
 package org.dyndns.delphyne.couchdb
 
 import java.security.SecureRandom
+
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
+
+import groovy.transform.ToString
 
 class RepositoryTest {
     Repository repo
@@ -80,10 +83,25 @@ class RepositoryTest {
         assert newPerson._rev < afterUpdate._rev
         
         assert 25 == repo.find(Person, newPerson._id).age
-    }    
+    }
     
+    @Test
+    void testDelete() {
+        Person person = new Person(name: 'bob', age: 33)
+        Person afterSave = repo.save(Person, person)
+        
+        assert afterSave._id
+        assert afterSave._rev
+        
+        def afterDeleteRev = repo.delete(Person, afterSave)
+        
+        assert afterDeleteRev != null && afterDeleteRev != afterSave._rev
+        
+        assert ! repo.find(Person, afterSave._id)
+    }    
 }
 
+@ToString(includeNames=true)
 class Person {
     String _id
     String _rev

@@ -1,5 +1,6 @@
 apply(plugin: 'groovy')
 apply(plugin: 'eclipse')
+apply(plugin: 'maven')
 
 group='org.dyndns.delphyne'
 version='1.0.0-SNAPSHOT'
@@ -25,4 +26,39 @@ dependencies {
             'junit:junit:4.8.2',
         ])
 }
-            
+
+jar {
+	manifest {
+		attributes (
+				'Created-By': 'Gradle',
+				'Built-By': System.env['USER'] ?: System.env['USERNAME'],
+				'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Implementation-Vendor-Id': project.group,
+                'Implementation-Build': ['git', 'rev-parse', '--short', 'HEAD'].execute().text
+			)
+	}
+}
+
+task sourcesJar(type: Jar, dependsOn:classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+ 
+task javadocJar(type: Jar, dependsOn:javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+ 
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: new File('.', ".m2").canonicalFile.toURL())
+        }
+    }
+}

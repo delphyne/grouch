@@ -28,7 +28,7 @@ class DocumentASTTransformationTest {
             }
         ''')
 
-        assert ! clazz.declaredFields.find { Field it -> it.name == '_id' } : 'An _id field should not have been created if a @Key is specified'
+        assert ! clazz.declaredFields.find { Field it -> it.name == '_id' } : 'An _id field should not have been created if an @Id is specified'
         assert clazz.getDeclaredMethod('get_id', [] as Class[]) : 'A get_id() proxy method should have been created'
         assert clazz.getDeclaredMethod('set_id', [String] as Class[]) : 'A set_id() proxy method should have been created'
 

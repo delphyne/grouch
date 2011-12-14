@@ -34,8 +34,8 @@ class Repository {
      * @param id
      * @return
      */
-    def find(String id) {
-        findDocument(this.class, id)
+    def find() {
+        findDocument(this.class, this._id)
     }
 
     /**
@@ -44,7 +44,7 @@ class Repository {
      * @param id
      * @return
      */
-    private <T> T findDocument(Class<T> type, String id, boolean suppressNotFoundExceptions = true) {
+    public <T> T findDocument(Class<T> type, String id, boolean suppressNotFoundExceptions = true) {
         try {
             def response = couch.get(path: "${type.simpleName.toLowerCase()}/${id}", contentType: 'text/plain')
             JsonSlurper slurper = new JsonSlurper()
@@ -64,8 +64,8 @@ class Repository {
      * @param instance
      * @return
      */
-    def save(def instance) {
-        saveDocument(this.class, instance)
+    def save() {
+        saveDocument(this.class, this)
     }
 
     /**
@@ -76,7 +76,7 @@ class Repository {
      * @param instance
      * @return
      */
-    private <T> T saveDocument(Class<T> type, T instance) {
+    public <T> T saveDocument(Class<T> type, T instance) {
         try {
             def propMap = toMap(instance)
             def json = JsonOutput.toJson(propMap)
@@ -115,8 +115,8 @@ class Repository {
      * @param findRevisionToDelete
      * @return the revision of the deleted document
      */
-    String delete(def instance) {
-        deleteDocument(this.class, instance)
+    String delete() {
+        deleteDocument(this.class, this)
     }
 
     /**
@@ -126,7 +126,7 @@ class Repository {
      * @param instance
      * @return
      */
-    private <T> String deleteDocument(Class<T> type, T instance) {
+    public <T> String deleteDocument(Class<T> type, T instance) {
         try {
             def instanceToDelete = instance._rev ? instance : find(type, instance.id, false)
 

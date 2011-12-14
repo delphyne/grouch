@@ -6,7 +6,7 @@ import org.dyndns.delphyne.couchdb.exception.ObjectNotFoundException
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.util.logging.Log4j
+import groovy.util.logging.Slf4j
 import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 
@@ -16,7 +16,7 @@ import groovyx.net.http.RESTClient
  * @author bcarr
  *
  */
-@Log4j
+@Slf4j
 class Repository {
     static RepositoryConfig config
 

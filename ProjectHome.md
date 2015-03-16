@@ -1,0 +1,1 @@
+Provides annotation-based ASTTransformations and Mixins for Groovy-based ORM with CouchDB
